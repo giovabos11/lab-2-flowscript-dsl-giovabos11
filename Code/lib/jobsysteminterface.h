@@ -20,7 +20,7 @@ public:
     void CreateThreads();
 
     int CreateJob(std::string jobType, std::string input);
-    void DestroyJob(std::string name);
+    void DestroyJob(int id);
     int JobStatus(int id);
     std::string CompleteJob(int id);
     std::vector<std::string> GetJobTypes();

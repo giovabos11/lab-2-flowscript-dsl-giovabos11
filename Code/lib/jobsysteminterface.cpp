@@ -38,10 +38,10 @@ int JobSystemInterface::CreateJob(std::string jobType, std::string input)
     return js->CreateJob(jobType, input);
 }
 
-void JobSystemInterface::DestroyJob(std::string name)
+void JobSystemInterface::DestroyJob(int id)
 {
     // Destroy Job
-    // ...
+    js->DestroyJob(id);
 }
 
 int JobSystemInterface::JobStatus(int id)
