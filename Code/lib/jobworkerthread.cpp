@@ -34,7 +34,7 @@ void JobWorkerThread::Work()
         Job *job = m_jobSystem->ClaimAJob(m_workerJobChannels);
         if (job)
         {
-            job->Execute();
+            job->Execute(job->input);
             m_jobSystem->OnJobCompleted(job);
         }
 
@@ -47,6 +47,13 @@ void JobWorkerThread::ShutDown()
 {
     m_workerStatusMutex.lock();
     m_isStopping = true;
+    m_workerStatusMutex.unlock();
+}
+
+void JobWorkerThread::TurnOn()
+{
+    m_workerStatusMutex.lock();
+    m_isStopping = false;
     m_workerStatusMutex.unlock();
 }
 

@@ -5,6 +5,7 @@
 #include <mutex>
 #include <deque>
 #include <fstream>
+#include <unordered_map>
 
 constexpr int JOB_TYPE_ANY = -1;
 
@@ -39,6 +40,9 @@ public:
     JobSystem();
     ~JobSystem();
 
+    void Stop();
+    void Resume();
+
     static JobSystem *CreateOrGet();
     static void Destroy();
     int totalJobs = 0;
@@ -50,11 +54,29 @@ public:
     // Status queries
     JobStatus GetJobStatus(int jobID) const;
     bool IsJobComplete(int jobID) const;
-    bool areJobsRunning() { return m_jobsRunning.size() != 0; }
-    bool areJobsCompleted() { return m_jobsCompleted.size() != 0; }
+    bool areJobsRunning()
+    {
+        bool temp;
+        m_areJobsRunningMutex.lock();
+        temp = m_jobsRunning.size() != 0;
+        m_areJobsRunningMutex.unlock();
+        return temp;
+    }
+    bool areJobsCompleted()
+    {
+        bool temp;
+        m_areJobsCompletedMutex.lock();
+        temp = m_jobsCompleted.size() != 0;
+        m_areJobsCompletedMutex.unlock();
+        return temp;
+    }
 
-    void FinishJob(int jobID);
-    void FinishCompletedJobs();
+    std::string FinishJob(int jobID);
+    std::string FinishCompletedJobs();
+
+    void Register(std::string name, Job *fnptr);
+    int CreateJob(std::string jobType, std::string input);
+    std::vector<std::string> GetJobTypes();
 
 private:
     Job *ClaimAJob(unsigned long channels);
@@ -70,10 +92,14 @@ private:
     mutable std::mutex m_jobsQueuedMutex;
     mutable std::mutex m_jobsRunningMutex;
     mutable std::mutex m_jobsCompletedMutex;
+    mutable std::mutex m_areJobsRunningMutex;
+    mutable std::mutex m_areJobsCompletedMutex;
 
     std::vector<JobHistoryEntry> m_jobHistory;
     mutable int m_jobHistoryLowestActiveIndex = 0;
     mutable std::mutex m_jobHistoryMutex;
+
+    std::unordered_map<std::string, Job *> jobs;
 };
 
 #endif // JOB_SYSTEM_JOBSYSTEM_H

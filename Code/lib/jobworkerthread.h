@@ -21,6 +21,7 @@ private:
     void StartUp();  // Kick off the actual thread, which will call Work()
     void Work();     // Called in the private thread, blocks forever until StopWorking() is called
     void ShutDown(); // Signal that work should stop at next opportunity
+    void TurnOn();
 
     bool IsStopping() const;
     void SetWorkerJobChannels(unsigned long workerJobChannels);

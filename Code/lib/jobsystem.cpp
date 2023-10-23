@@ -10,11 +10,6 @@ typedef void (*JobCallback)(Job *completedJob);
 JobSystem::JobSystem()
 {
     m_jobHistory.reserve(256 * 1024);
-
-    // Reset job history file
-    std::ofstream o("../Data/job_history.txt");
-    o << "";
-    o.close();
 }
 
 JobSystem::~JobSystem()
@@ -32,6 +27,32 @@ JobSystem::~JobSystem()
     {
         delete m_workerThreads.back();
         m_workerThreads.pop_back();
+    }
+    m_workerThreadsMutex.unlock();
+}
+
+void JobSystem::Stop()
+{
+    m_workerThreadsMutex.lock();
+    int numWorkerThreads = (int)m_workerThreads.size();
+
+    // Tell each worker thread to stop picking up jobs
+    for (int i = 0; i < numWorkerThreads; i++)
+    {
+        m_workerThreads[i]->ShutDown();
+    }
+    m_workerThreadsMutex.unlock();
+}
+
+void JobSystem::Resume()
+{
+    m_workerThreadsMutex.lock();
+    int numWorkerThreads = (int)m_workerThreads.size();
+
+    // Tell each worker thread to pick up jobs again
+    for (int i = 0; i < numWorkerThreads; i++)
+    {
+        m_workerThreads[i]->TurnOn();
     }
     m_workerThreadsMutex.unlock();
 }
@@ -93,10 +114,6 @@ void JobSystem::QueueJob(Job *job)
 
     m_jobHistoryMutex.lock();
     m_jobHistory.emplace_back(JobHistoryEntry(job->m_jobType, JOB_STATUS_QUEUED));
-    // Write to job history file
-    std::ofstream o("../Data/job_history.txt", std::ios_base::app);
-    o << "Job ID " << job->GetUniqueID() << " was queued" << std::endl;
-    o.close();
     m_jobHistoryMutex.unlock();
 
     m_jobsQueued.push_back(job);
@@ -120,12 +137,13 @@ JobStatus JobSystem::GetJobStatus(int jobID) const
 
 bool JobSystem::IsJobComplete(int jobID) const
 {
-    return (JobStatus(jobID)) == (JOB_STATUS_COMPLETED);
+    return (GetJobStatus(jobID)) == (JOB_STATUS_COMPLETED);
 }
 
-void JobSystem::FinishCompletedJobs()
+std::string JobSystem::FinishCompletedJobs()
 {
     std::deque<Job *> jobsCompleted;
+    std::string output = "null";
 
     m_jobsCompletedMutex.lock();
     jobsCompleted.swap(m_jobsCompleted);
@@ -133,56 +151,68 @@ void JobSystem::FinishCompletedJobs()
 
     for (Job *job : jobsCompleted)
     {
-        job->JobCompleteCallback();
+        output = job->JobCompleteCallback();
         m_jobHistoryMutex.lock();
-        // Write to job history file
-        std::ofstream o("../Data/job_history.txt", std::ios_base::app);
-        o << "Job ID " << job->GetUniqueID() << " was retired" << std::endl;
-        o.close();
         m_jobHistory[job->m_jobID].m_jobStatus = JOB_STATUS_RETIRED;
         m_jobHistoryMutex.unlock();
         delete job;
     }
+    return output;
 }
 
-void JobSystem::FinishJob(int jobID)
+std::string JobSystem::FinishJob(int jobID)
 {
+    // std::cout << "Here" << std::endl;
+    // m_jobsCompletedMutex.lock();
+    // std::cout << "Completed queue size: " << m_jobsCompleted.size() << std::endl;
+    // Job *thisCompletedJob = nullptr;
+    // for (auto jcIter = m_jobsCompleted.begin(); jcIter != m_jobsCompleted.end(); ++jcIter)
+    // {
+    //     Job *someCompletedJob = *jcIter;
+    //     std::cout << someCompletedJob->m_jobID << ", " << GetJobStatus(someCompletedJob->m_jobID) << std::endl;
+    // }
+    // m_jobsCompletedMutex.unlock();
+
+    std::string output = "null";
     while (!IsJobComplete(jobID))
     {
-        JobStatus jobStatus = GetJobStatus(jobID);
-        if (jobStatus == JOB_STATUS_NEVER_SEEN || jobStatus == JOB_STATUS_RETIRED)
-        {
-            std::cout << "ERROR: Waiting for Job (#" << jobID << ") - no such job in JobSystem." << std::endl;
-            return;
-        }
-
-        m_jobsCompletedMutex.lock();
-        Job *thisCompletedJob = nullptr;
-        for (auto jcIter = m_jobsCompleted.begin(); jcIter != m_jobsCompleted.end(); ++jcIter)
-        {
-            Job *someCompletedJob = *jcIter;
-            if (someCompletedJob->m_jobID == jobID)
-            {
-                thisCompletedJob = someCompletedJob;
-                m_jobsCompleted.erase(jcIter);
-                break;
-            }
-        }
-        m_jobsCompletedMutex.unlock();
-
-        if (thisCompletedJob == nullptr)
-        {
-            std::cout << "ERROR: Job #" << jobID << " was status complete but not found in completed list." << std::endl;
-        }
-
-        thisCompletedJob->JobCompleteCallback();
-
-        m_jobHistoryMutex.lock();
-        m_jobHistory[thisCompletedJob->m_jobID].m_jobStatus = JOB_STATUS_RETIRED;
-        m_jobHistoryMutex.unlock();
-
-        delete thisCompletedJob;
+        // Wait for job to complete first
+        std::this_thread::yield();
     }
+
+    JobStatus jobStatus = GetJobStatus(jobID);
+    if (jobStatus == JOB_STATUS_NEVER_SEEN || jobStatus == JOB_STATUS_RETIRED)
+    {
+        std::cout << "ERROR: Waiting for Job (#" << jobID << ") - no such job in JobSystem." << std::endl;
+    }
+
+    m_jobsCompletedMutex.lock();
+    Job *thisCompletedJob = nullptr;
+    for (auto jcIter = m_jobsCompleted.begin(); jcIter != m_jobsCompleted.end(); ++jcIter)
+    {
+        Job *someCompletedJob = *jcIter;
+        if (someCompletedJob->m_jobID == jobID)
+        {
+            thisCompletedJob = someCompletedJob;
+            // m_jobsCompleted.erase(jcIter);
+            break;
+        }
+    }
+    m_jobsCompletedMutex.unlock();
+
+    if (thisCompletedJob == nullptr)
+    {
+        std::cout << "ERROR: Job #" << jobID << " was status complete but not found in completed list." << std::endl;
+    }
+    output = thisCompletedJob->JobCompleteCallback();
+
+    m_jobHistoryMutex.lock();
+    m_jobHistory[thisCompletedJob->m_jobID].m_jobStatus = JOB_STATUS_RETIRED;
+    m_jobHistoryMutex.unlock();
+
+    delete thisCompletedJob;
+
+    return output;
 }
 
 void JobSystem::OnJobCompleted(Job *jobJustExecuted)
@@ -200,10 +230,6 @@ void JobSystem::OnJobCompleted(Job *jobJustExecuted)
             m_jobsRunning.erase(runningJobItr);
             m_jobsCompleted.push_back(jobJustExecuted);
             m_jobHistory[jobJustExecuted->m_jobID].m_jobStatus = JOB_STATUS_COMPLETED;
-            // Write to job history file
-            std::ofstream o("../Data/job_history.txt", std::ios_base::app);
-            o << "Job ID " << jobJustExecuted->GetUniqueID() << " was completed" << std::endl;
-            o.close();
             m_jobHistoryMutex.unlock();
             break;
         }
@@ -228,10 +254,6 @@ Job *JobSystem::ClaimAJob(unsigned long channels)
             claimedJob = queuedJob;
 
             m_jobHistoryMutex.lock();
-            // Write to job history file
-            std::ofstream o("../Data/job_history.txt", std::ios_base::app);
-            o << "Job ID " << claimedJob->GetUniqueID() << " was claimed" << std::endl;
-            o.close();
             m_jobsQueued.erase(queuedJobIter);
             m_jobsRunning.push_back(claimedJob);
             m_jobHistory[claimedJob->m_jobID].m_jobStatus = JOB_STATUS_RUNNING;
@@ -244,4 +266,28 @@ Job *JobSystem::ClaimAJob(unsigned long channels)
     m_jobsQueuedMutex.unlock();
 
     return claimedJob;
+}
+
+void JobSystem::Register(std::string name, Job *fnptr)
+{
+    jobs[name] = fnptr;
+}
+
+int JobSystem::CreateJob(std::string jobType, std::string input)
+{
+    Job *newJob = jobs[jobType];
+    Job *cloned = new Job(*newJob);
+    cloned->input = input;
+    QueueJob(cloned);
+    return cloned->GetUniqueID();
+}
+
+std::vector<std::string> JobSystem::GetJobTypes()
+{
+    std::vector<std::string> keys;
+    for (auto key : jobs)
+    {
+        keys.push_back(key.first);
+    }
+    return keys;
 }

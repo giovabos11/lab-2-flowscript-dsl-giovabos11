@@ -1,2 +1,5 @@
 /.vscode
 /*.exe
+/*.a
+/*.dll
+/lib/*.a

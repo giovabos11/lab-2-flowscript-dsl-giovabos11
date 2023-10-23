@@ -1,77 +1,92 @@
-#include <iostream>
-#include <string>
+#include <fstream>
 
-#include "jobsystem.h"
-#include "compilejob.h"
+#include "./lib/jobsysteminterface.h"
 
 using namespace std;
+
+// Example Job 1
+string sortString(string a)
+{
+    int i, key, j, n = a.size();
+    for (i = 1; i < n; i++)
+    {
+        key = a[i];
+        j = i - 1;
+        while (j >= 0 && a[j] > key)
+        {
+            a[j + 1] = a[j];
+            j = j - 1;
+        }
+        a[j + 1] = key;
+    }
+    return a;
+}
+
+// Example Job 2
+string crazyCase(string a)
+{
+    for (int i = 0; i < a.size(); i++)
+    {
+        if (i % 2 == 0)
+        {
+            a[i] = toupper(a[i]);
+        }
+        else
+        {
+            a[i] = tolower(a[i]);
+        }
+    }
+    return a;
+}
 
 int main()
 {
     // Create job system object
-    JobSystem *js = JobSystem::CreateOrGet();
+    JobSystemInterface js;
 
-    // Create a vector with different commands
-    string make = "";
-#ifdef __linux__
-    make = "make";
-#elif _WIN32
-    make = "cd C:\\Users\\giova_pwwkjqa\\OneDrive\\Escritorio\\SMU\\lab-2-flowscript-dsl-giovabos11\\Code & MinGW32-make";
-#else
-    make = "make";
-#endif
-    vector<string> commands = {make + " project1",
-                               make + " project2",
-                               make + " project3",
-                               make + " project4"};
+    js.CreateJobSystem();
+    js.CreateThreads();
 
-    // Create the maximum thread amount supported by the system
-    cout << "Creating Worker Threads..." << endl;
-    for (int i = 0; i < thread::hardware_concurrency() - 1; i++)
+    // Register all jobs
+    js.RegisterJob("sort_string", new Job(sortString, 1));
+    js.RegisterJob("crazy_case", new Job(crazyCase, 2));
+
+    // Spin off jobs
+    int job1ID = js.CreateJob("sort_string", "jdrbfkjdb");
+    int job2ID = js.CreateJob("sort_string", "abcd");
+    int job3ID = js.CreateJob("sort_string", "twuigui");
+    int job4ID = js.CreateJob("sort_string", "giovanni");
+
+    // Check job status and try to complete the jobs
+    string output1, output2, output3, output4;
+    while (js.AreJobsRunning())
     {
-        js->CreateWorkerThread(("Thread" + std::to_string(i)).c_str(), 0xFFFFFFFF);
+        //  Wait to complete all the jobs
     }
+    output1 = js.CompleteJob(job1ID);
+    output2 = js.CompleteJob(job2ID);
+    output3 = js.CompleteJob(job3ID);
+    output4 = js.CompleteJob(job4ID);
 
-    // Create a different job for each make command (makefile needed)
-    cout << "Creating Jobs..." << endl;
-    vector<Job *> jobs;
-    for (int i = 0; i < commands.size(); i++)
-    {
-        CompileJob *cjb = new CompileJob(0xFFFFFFFF, i);
-        cjb->command = commands[i];
-        jobs.push_back(cjb);
-    }
+    // Spin off different jobs
+    int job5ID = js.CreateJob("crazy_case", output1);
+    int job6ID = js.CreateJob("crazy_case", output3);
 
-    // Queue the jobs
-    cout << "Queuing Jobs..." << endl;
-    vector<Job *>::iterator it = jobs.begin();
-    for (; it != jobs.end(); it++)
+    while (js.AreJobsRunning())
     {
-        js->QueueJob(*it);
+        //  Wait to complete all the jobs
     }
+    output1 = js.CompleteJob(job5ID);
+    output3 = js.CompleteJob(job6ID);
 
-    // Check all job statuses again
-    std::cout << "Job Status:" << std::endl;
-    for (int i = 0; i < jobs.size(); i++)
-    {
-        std::cout << "Job " << i << " Status: " << (int)js->GetJobStatus(i) << std::endl;
-    }
-
-    // Finish all jobs
-    while (js->areJobsRunning() || js->areJobsCompleted())
-    {
-        js->FinishCompletedJobs();
-    }
-
-    // Check all job statuses again
-    std::cout << "Job Status:" << std::endl;
-    for (int i = 0; i < jobs.size(); i++)
-    {
-        std::cout << "Job " << i << " Status: " << (int)js->GetJobStatus(i) << std::endl;
-    }
+    // Print the outputs
+    cout << "Output: " << output1 << endl;
+    cout << "Output: " << output2 << endl;
+    cout << "Output: " << output3 << endl;
+    cout << "Output: " << output4 << endl;
 
     // Destroy Job System
-    js->Destroy();
+    js.DestroyJobSystem();
 
     return 0;
 }
