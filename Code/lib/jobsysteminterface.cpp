@@ -40,7 +40,7 @@ int JobSystemInterface::CreateJob(std::string jobType, std::string input)
 
 void JobSystemInterface::DestroyJob(std::string name)
 {
-    // Destroy Worker Thread
+    // Destroy Job
     // ...
 }
 

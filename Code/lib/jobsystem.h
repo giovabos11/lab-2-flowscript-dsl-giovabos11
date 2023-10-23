@@ -57,17 +57,17 @@ public:
     bool areJobsRunning()
     {
         bool temp;
-        m_areJobsRunningMutex.lock();
+        m_jobsRunningMutex.lock();
         temp = m_jobsRunning.size() != 0;
-        m_areJobsRunningMutex.unlock();
+        m_jobsRunningMutex.unlock();
         return temp;
     }
     bool areJobsCompleted()
     {
         bool temp;
-        m_areJobsCompletedMutex.lock();
+        m_jobsCompletedMutex.lock();
         temp = m_jobsCompleted.size() != 0;
-        m_areJobsCompletedMutex.unlock();
+        m_jobsCompletedMutex.unlock();
         return temp;
     }
 
@@ -77,6 +77,7 @@ public:
     void Register(std::string name, Job *fnptr);
     int CreateJob(std::string jobType, std::string input);
     std::vector<std::string> GetJobTypes();
+    void DestroyJob(int jobID);
 
 private:
     Job *ClaimAJob(unsigned long channels);
@@ -92,8 +93,6 @@ private:
     mutable std::mutex m_jobsQueuedMutex;
     mutable std::mutex m_jobsRunningMutex;
     mutable std::mutex m_jobsCompletedMutex;
-    mutable std::mutex m_areJobsRunningMutex;
-    mutable std::mutex m_areJobsCompletedMutex;
 
     std::vector<JobHistoryEntry> m_jobHistory;
     mutable int m_jobHistoryLowestActiveIndex = 0;

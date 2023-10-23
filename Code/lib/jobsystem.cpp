@@ -270,11 +270,13 @@ Job *JobSystem::ClaimAJob(unsigned long channels)
 
 void JobSystem::Register(std::string name, Job *fnptr)
 {
+    // Create a new key for the function pointer
     jobs[name] = fnptr;
 }
 
 int JobSystem::CreateJob(std::string jobType, std::string input)
 {
+    // Clone the job from the function pointer and queue it
     Job *newJob = jobs[jobType];
     Job *cloned = new Job(*newJob);
     cloned->input = input;
@@ -290,4 +292,50 @@ std::vector<std::string> JobSystem::GetJobTypes()
         keys.push_back(key.first);
     }
     return keys;
+}
+
+void JobSystem::DestroyJob(int jobID)
+{
+    // Clear the job from any queue
+    m_jobsQueuedMutex.lock();
+    Job *thisJob = nullptr;
+    for (auto jcIter = m_jobsQueued.begin(); jcIter != m_jobsQueued.end(); ++jcIter)
+    {
+        Job *someJob = *jcIter;
+        if (someJob->m_jobID == jobID)
+        {
+            thisJob = someJob;
+            m_jobsQueued.erase(jcIter);
+            break;
+        }
+    }
+    m_jobsQueuedMutex.unlock();
+
+    m_jobsRunningMutex.lock();
+    *thisJob = nullptr;
+    for (auto jcIter = m_jobsRunning.begin(); jcIter != m_jobsRunning.end(); ++jcIter)
+    {
+        Job *someJob = *jcIter;
+        if (someJob->m_jobID == jobID)
+        {
+            thisJob = someJob;
+            m_jobsRunning.erase(jcIter);
+            break;
+        }
+    }
+    m_jobsRunningMutex.unlock();
+
+    m_jobsCompletedMutex.lock();
+    *thisJob = nullptr;
+    for (auto jcIter = m_jobsCompleted.begin(); jcIter != m_jobsCompleted.end(); ++jcIter)
+    {
+        Job *someJob = *jcIter;
+        if (someJob->m_jobID == jobID)
+        {
+            thisJob = someJob;
+            m_jobsCompleted.erase(jcIter);
+            break;
+        }
+    }
+    m_jobsCompletedMutex.unlock();
 }
