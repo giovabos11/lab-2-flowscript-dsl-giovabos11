@@ -194,7 +194,7 @@ std::string JobSystem::FinishJob(int jobID)
         if (someCompletedJob->m_jobID == jobID)
         {
             thisCompletedJob = someCompletedJob;
-            // m_jobsCompleted.erase(jcIter);
+            m_jobsCompleted.erase(jcIter);
             break;
         }
     }
