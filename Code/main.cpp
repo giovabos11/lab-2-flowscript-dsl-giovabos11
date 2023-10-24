@@ -52,45 +52,50 @@ int main()
     js.RegisterJob("crazy_case", new Job(crazyCase, 2));
 
     // Get all job types available
-    vector<string> jobTypes = js.GetJobTypes();
-    cout << "Job types available: ";
+    json jobTypes = json::parse(js.GetJobTypes());
+    cout << "Job types available: " << endl;
     for (int i = 0; i < jobTypes.size(); i++)
     {
-        cout << jobTypes[i] << " ";
+        cout << jobTypes[i] << endl;
     }
-    cout << endl;
 
     // Spin off jobs
-    int job1ID = js.CreateJob("sort_string", "jdrbfkjdb");
-    int job2ID = js.CreateJob("sort_string", "abcd");
-    int job3ID = js.CreateJob("sort_string", "twuigui");
-    int job4ID = js.CreateJob("sort_string", "giovanni");
+    string job1 = js.CreateJob("{\"job_type\": \"sort_string\", \"input\": \"jdrbfkjdb\"}");
+    string job2 = js.CreateJob("{\"job_type\": \"sort_string\", \"input\": \"abcd\"}");
+    string job3 = js.CreateJob("{\"job_type\": \"sort_string\", \"input\": \"twuigui\"}");
+    string job4 = js.CreateJob("{\"job_type\": \"sort_string\", \"input\": \"giovanni\"}");
+
+    // Get job IDs
+    int job1ID = json::parse(job1)["id"];
+    int job2ID = json::parse(job2)["id"];
+    int job3ID = json::parse(job3)["id"];
+    int job4ID = json::parse(job4)["id"];
 
     // Get Job statuses
-    cout << "Job ID " << job1ID << " status: " << js.JobStatus(job1ID) << endl;
-    cout << "Job ID " << job2ID << " status: " << js.JobStatus(job2ID) << endl;
-    cout << "Job ID " << job3ID << " status: " << js.JobStatus(job3ID) << endl;
-    cout << "Job ID " << job4ID << " status: " << js.JobStatus(job4ID) << endl;
+    cout << "Job ID " << job1ID << " status: " << json::parse(js.JobStatus(job1))["status"] << endl;
+    cout << "Job ID " << job2ID << " status: " << json::parse(js.JobStatus(job2))["status"] << endl;
+    cout << "Job ID " << job3ID << " status: " << json::parse(js.JobStatus(job3))["status"] << endl;
+    cout << "Job ID " << job4ID << " status: " << json::parse(js.JobStatus(job4))["status"] << endl;
 
     // Check job status and try to complete the jobs
     string output1, output2, output3, output4;
 
-    while (js.AreJobsRunning())
+    while (json::parse(js.AreJobsRunning())["are_jobs_running"])
     {
         //  Wait to complete all the jobs
     }
 
     // Get job outputs
-    output1 = js.CompleteJob(job1ID);
-    output2 = js.CompleteJob(job2ID);
-    output3 = js.CompleteJob(job3ID);
-    output4 = js.CompleteJob(job4ID);
+    output1 = json::parse(js.CompleteJob(job1))["output"];
+    output2 = json::parse(js.CompleteJob(job2))["output"];
+    output3 = json::parse(js.CompleteJob(job3))["output"];
+    output4 = json::parse(js.CompleteJob(job4))["output"];
 
     // Get Job statuses
-    cout << "Job ID " << job1ID << " status: " << js.JobStatus(job1ID) << endl;
-    cout << "Job ID " << job2ID << " status: " << js.JobStatus(job2ID) << endl;
-    cout << "Job ID " << job3ID << " status: " << js.JobStatus(job3ID) << endl;
-    cout << "Job ID " << job4ID << " status: " << js.JobStatus(job4ID) << endl;
+    cout << "Job ID " << job1ID << " status: " << json::parse(js.JobStatus(job1))["status"] << endl;
+    cout << "Job ID " << job2ID << " status: " << json::parse(js.JobStatus(job2))["status"] << endl;
+    cout << "Job ID " << job3ID << " status: " << json::parse(js.JobStatus(job3))["status"] << endl;
+    cout << "Job ID " << job4ID << " status: " << json::parse(js.JobStatus(job4))["status"] << endl;
 
     // Stop Job System
     js.StopJobSystem();
@@ -99,24 +104,29 @@ int main()
     js.ResumeJobSystem();
 
     // Spin off different jobs
-    int job5ID = js.CreateJob("crazy_case", output1);
-    int job6ID = js.CreateJob("crazy_case", output3);
-    int job7ID = js.CreateJob("crazy_case", output4);
+    string job5 = js.CreateJob("{\"job_type\": \"crazy_case\", \"input\": \"" + output1 + "\"}");
+    string job6 = js.CreateJob("{\"job_type\": \"crazy_case\", \"input\": \"" + output3 + "\"}");
+    string job7 = js.CreateJob("{\"job_type\": \"crazy_case\", \"input\": \"" + output4 + "\"}");
 
-    while (js.AreJobsRunning())
+    // Get job IDs
+    int job5ID = json::parse(job5)["id"];
+    int job6ID = json::parse(job6)["id"];
+    int job7ID = json::parse(job7)["id"];
+
+    while (json::parse(js.AreJobsRunning())["are_jobs_running"])
     {
         //  Wait to complete all the jobs
     }
     // Destroy job 7 while running
-    js.DestroyJob(job7ID);
+    js.DestroyJob(job7);
 
     // Get job outputs
-    output1 = js.CompleteJob(job5ID);
-    output3 = js.CompleteJob(job6ID);
+    output1 = json::parse(js.CompleteJob(job5))["output"];
+    output3 = json::parse(js.CompleteJob(job6))["output"];
 
     // Get job statuses
-    cout << "Job ID " << job5ID << " status: " << js.JobStatus(job5ID) << endl;
-    cout << "Job ID " << job6ID << " status: " << js.JobStatus(job6ID) << endl;
+    cout << "Job ID " << job5ID << " status: " << json::parse(js.JobStatus(job5))["status"] << endl;
+    cout << "Job ID " << job6ID << " status: " << json::parse(js.JobStatus(job6))["status"] << endl;
 
     // Print the outputs
     cout << "Output: " << output1 << endl;

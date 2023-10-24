@@ -33,33 +33,42 @@ void JobSystemInterface::CreateThreads()
     }
 }
 
-int JobSystemInterface::CreateJob(std::string jobType, std::string input)
+std::string JobSystemInterface::CreateJob(std::string input)
 {
-    return js->CreateJob(jobType, input);
+    json temp = json::parse(input);
+    int jobID = js->CreateJob(temp["job_type"], temp["input"]);
+    temp["id"] = jobID;
+    return temp.dump();
 }
 
-void JobSystemInterface::DestroyJob(int id)
+void JobSystemInterface::DestroyJob(std::string input)
 {
     // Destroy Job
-    js->DestroyJob(id);
+    js->DestroyJob(json::parse(input)["id"]);
 }
 
-int JobSystemInterface::JobStatus(int id)
+std::string JobSystemInterface::JobStatus(std::string input)
 {
     // Return the job status
-    return (int)js->GetJobStatus(id);
+    json temp = json::parse(input);
+    temp["status"] = (int)js->GetJobStatus(json::parse(input)["id"]);
+    return temp.dump();
 }
 
-std::string JobSystemInterface::CompleteJob(int id)
+std::string JobSystemInterface::CompleteJob(std::string input)
 {
+    json temp = json::parse(input);
+    temp["output"] = js->FinishJob(temp["id"]);
     // Finish job
-    return js->FinishJob(id);
+    return temp.dump();
 }
 
-bool JobSystemInterface::AreJobsRunning()
+std::string JobSystemInterface::AreJobsRunning()
 {
+    json temp;
+    temp["are_jobs_running"] = js->areJobsRunning();
     // Return if jobs are running or completed
-    return js->areJobsRunning();
+    return temp.dump();
 }
 
 void JobSystemInterface::RegisterJob(std::string name, Job *ptr)
@@ -68,7 +77,13 @@ void JobSystemInterface::RegisterJob(std::string name, Job *ptr)
     js->Register(name, ptr);
 }
 
-std::vector<std::string> JobSystemInterface::GetJobTypes()
+std::string JobSystemInterface::GetJobTypes()
 {
-    return js->GetJobTypes();
+    json temp;
+    std::vector<std::string> jobTypes = js->GetJobTypes();
+    for (int i = 0; i < jobTypes.size(); i++)
+    {
+        temp += jobTypes[i];
+    }
+    return temp.dump();
 }

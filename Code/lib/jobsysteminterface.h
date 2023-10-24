@@ -19,12 +19,12 @@ public:
 
     void CreateThreads();
 
-    int CreateJob(std::string jobType, std::string input);
-    void DestroyJob(int id);
-    int JobStatus(int id);
-    std::string CompleteJob(int id);
-    std::vector<std::string> GetJobTypes();
-    bool AreJobsRunning();
+    std::string CreateJob(std::string input);
+    void DestroyJob(std::string input);
+    std::string JobStatus(std::string id);
+    std::string CompleteJob(std::string input);
+    std::string GetJobTypes();
+    std::string AreJobsRunning();
 
     void RegisterJob(std::string name, Job *ptr);
 
