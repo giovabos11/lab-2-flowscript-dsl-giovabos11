@@ -51,33 +51,72 @@ int main()
     js.RegisterJob("sort_string", new Job(sortString, 1));
     js.RegisterJob("crazy_case", new Job(crazyCase, 2));
 
+    // Get all job types available
+    vector<string> jobTypes = js.GetJobTypes();
+    cout << "Job types available: ";
+    for (int i = 0; i < jobTypes.size(); i++)
+    {
+        cout << jobTypes[i] << " ";
+    }
+    cout << endl;
+
     // Spin off jobs
     int job1ID = js.CreateJob("sort_string", "jdrbfkjdb");
     int job2ID = js.CreateJob("sort_string", "abcd");
     int job3ID = js.CreateJob("sort_string", "twuigui");
     int job4ID = js.CreateJob("sort_string", "giovanni");
 
+    // Get Job statuses
+    cout << "Job ID " << job1ID << " status: " << js.JobStatus(job1ID) << endl;
+    cout << "Job ID " << job2ID << " status: " << js.JobStatus(job2ID) << endl;
+    cout << "Job ID " << job3ID << " status: " << js.JobStatus(job3ID) << endl;
+    cout << "Job ID " << job4ID << " status: " << js.JobStatus(job4ID) << endl;
+
     // Check job status and try to complete the jobs
     string output1, output2, output3, output4;
+
     while (js.AreJobsRunning())
     {
         //  Wait to complete all the jobs
     }
+
+    // Get job outputs
     output1 = js.CompleteJob(job1ID);
     output2 = js.CompleteJob(job2ID);
     output3 = js.CompleteJob(job3ID);
     output4 = js.CompleteJob(job4ID);
 
+    // Get Job statuses
+    cout << "Job ID " << job1ID << " status: " << js.JobStatus(job1ID) << endl;
+    cout << "Job ID " << job2ID << " status: " << js.JobStatus(job2ID) << endl;
+    cout << "Job ID " << job3ID << " status: " << js.JobStatus(job3ID) << endl;
+    cout << "Job ID " << job4ID << " status: " << js.JobStatus(job4ID) << endl;
+
+    // Stop Job System
+    js.StopJobSystem();
+
+    // Resume Job System
+    js.ResumeJobSystem();
+
     // Spin off different jobs
     int job5ID = js.CreateJob("crazy_case", output1);
     int job6ID = js.CreateJob("crazy_case", output3);
+    int job7ID = js.CreateJob("crazy_case", output4);
 
     while (js.AreJobsRunning())
     {
         //  Wait to complete all the jobs
     }
+    // Destroy job 7 while running
+    js.DestroyJob(job7ID);
+
+    // Get job outputs
     output1 = js.CompleteJob(job5ID);
     output3 = js.CompleteJob(job6ID);
+
+    // Get job statuses
+    cout << "Job ID " << job5ID << " status: " << js.JobStatus(job5ID) << endl;
+    cout << "Job ID " << job6ID << " status: " << js.JobStatus(job6ID) << endl;
 
     // Print the outputs
     cout << "Output: " << output1 << endl;

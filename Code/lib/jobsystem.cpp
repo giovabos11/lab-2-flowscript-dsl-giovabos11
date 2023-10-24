@@ -298,13 +298,13 @@ void JobSystem::DestroyJob(int jobID)
 {
     // Clear the job from any queue
     m_jobsQueuedMutex.lock();
-    Job *thisJob = nullptr;
+    Job *thisJob1 = nullptr;
     for (auto jcIter = m_jobsQueued.begin(); jcIter != m_jobsQueued.end(); ++jcIter)
     {
         Job *someJob = *jcIter;
         if (someJob->m_jobID == jobID)
         {
-            thisJob = someJob;
+            thisJob1 = someJob;
             m_jobsQueued.erase(jcIter);
             break;
         }
@@ -312,13 +312,15 @@ void JobSystem::DestroyJob(int jobID)
     m_jobsQueuedMutex.unlock();
 
     m_jobsRunningMutex.lock();
-    *thisJob = nullptr;
+    Job *thisJob2 = nullptr;
     for (auto jcIter = m_jobsRunning.begin(); jcIter != m_jobsRunning.end(); ++jcIter)
     {
         Job *someJob = *jcIter;
         if (someJob->m_jobID == jobID)
         {
-            thisJob = someJob;
+            thisJob2 = someJob;
+            // Finish the job before erasing it form the queue
+            FinishJob(thisJob2->GetUniqueID());
             m_jobsRunning.erase(jcIter);
             break;
         }
@@ -326,13 +328,13 @@ void JobSystem::DestroyJob(int jobID)
     m_jobsRunningMutex.unlock();
 
     m_jobsCompletedMutex.lock();
-    *thisJob = nullptr;
+    Job *thisJob3 = nullptr;
     for (auto jcIter = m_jobsCompleted.begin(); jcIter != m_jobsCompleted.end(); ++jcIter)
     {
         Job *someJob = *jcIter;
         if (someJob->m_jobID == jobID)
         {
-            thisJob = someJob;
+            thisJob3 = someJob;
             m_jobsCompleted.erase(jcIter);
             break;
         }
